@@ -9,9 +9,9 @@ Silver e Gold. O recorte cobre ocorrências cuja circunscrição pertence a Soro
 > (`pmusachio`)** para o MVP de Engenharia de Dados. As decisões, o código, a
 > execução e a interpretação dos resultados são de responsabilidade do autor.
 
-> **Estado desta versão:** valores e conclusões marcados como
-> `PENDENTE DE EXECUÇÃO` só podem ser substituídos pelos resultados de uma execução
-> integral no Databricks. Nenhum número foi antecipado ou inventado.
+> **Estado desta versão:** pipeline executado integralmente no Databricks em 8 de
+> setembro de 2026. As contagens, conclusões e limitações abaixo foram obtidas das
+> tabelas persistidas no Unity Catalog.
 
 ## 1. Contexto de Negócio e Perguntas
 
@@ -98,7 +98,7 @@ Checksums observados na coleta de 5 de setembro de 2026:
    baixar os quatro XLSX e calcular os checksums.
 2. Envie os arquivos, sem alteração, para
    `/Volumes/workspace/sorocaba_seguranca/dados/xlsx/`.
-3. Execute [`notebooks/00_coleta_bronze.py`](notebooks/00_coleta_bronze.py), que
+3. Execute [`notebooks/00_coleta_bronze.ipynb`](notebooks/00_coleta_bronze.ipynb), que
    realiza uma carga integral manual de 2022–2025.
 4. O notebook valida os arquivos, lê as abas em lotes com `openpyxl`, localiza
    `CD_IBGE` pelo cabeçalho (aceitando também o alias histórico `COD_IBGE`) e
@@ -296,7 +296,7 @@ ser avaliada e acrescentada a este catálogo antes da entrega final.
 | Coluna | Tipo | Domínio e descrição |
 |---|---|---|
 | `sk_tempo` | bigint | Chave determinística; `-1` para desconhecido |
-| `data` | date | Limites `PENDENTE DE EXECUÇÃO`; nulo na sentinela |
+| `data` | date | De `1976-01-02` a `2025-12-31`; nulo na sentinela. A análise aplica explicitamente o recorte 2022–2025. |
 | `ano` | int | Ano civil ou `-1` |
 | `mes` | int | 1–12 ou `-1` |
 | `nome_mes` | string | Janeiro–Dezembro ou `NÃO INFORMADO` |
@@ -428,28 +428,33 @@ As duas tabelas usam o mesmo contrato e contêm uma linha por atributo.
 
 | Ordem | Artefato | Responsabilidade | Saídas |
 |---:|---|---|---|
-| 1 | [`00_coleta_bronze.py`](notebooks/00_coleta_bronze.py) | Inventário, leitura em lotes, filtro municipal e hash | Manifesto e Bronze |
-| 2 | [`01_pipeline_bronze_silver_gold.py`](notebooks/01_pipeline_bronze_silver_gold.py) | Reconciliação, tipagem, limpeza, deduplicação e estrela | Silver, Gold e matriz |
-| 3 | [`02_qualidade_dados.py`](notebooks/02_qualidade_dados.py) | Perfil por atributo e testes de integridade | Perfis e validações |
-| 4 | [`03_analise_perguntas_negocio.py`](notebooks/03_analise_perguntas_negocio.py) | Três perguntas, tabelas, gráficos e conclusão | Resultados no notebook |
+| 1 | [`00_coleta_bronze.ipynb`](notebooks/00_coleta_bronze.ipynb) | Inventário, leitura em lotes, filtro municipal e hash | Manifesto e Bronze |
+| 2 | [`01_pipeline_bronze_silver_gold.ipynb`](notebooks/01_pipeline_bronze_silver_gold.ipynb) | Reconciliação, tipagem, limpeza, deduplicação e estrela | Silver, Gold e matriz |
+| 3 | [`02_qualidade_dados.ipynb`](notebooks/02_qualidade_dados.ipynb) | Perfil por atributo e testes de integridade | Perfis e validações |
+| 4 | [`03_analise_perguntas_negocio.ipynb`](notebooks/03_analise_perguntas_negocio.ipynb) | Três perguntas, tabelas, gráficos e conclusão | Resultados no notebook |
+
+As consultas SQL auxiliares usadas para conferir os objetos persistidos e gerar
+as evidências 03, 04, 05 e 08 estão consolidadas em
+[`consultas_evidencias.sql`](sql/consultas_evidencias.sql). Elas são somente
+leitura e não duplicam as consultas analíticas do notebook 03.
 
 ### Matriz de transformações
 
-As contagens abaixo devem ser copiadas de `matriz_transformacoes` depois da
-execução, nunca estimadas.
+As contagens abaixo foram copiadas de `matriz_transformacoes` após a execução
+integral. “Afetadas” representa valores alterados ou linhas removidas pela regra.
 
-| Regra | Motivo | Campos | Antes | Depois |
-|---|---|---|---:|---:|
-| Sanitizar apenas nomes de coluna | Compatibilidade Delta | Cabeçalhos Bronze | `PENDENTE` | `PENDENTE` |
-| Filtrar Sorocaba durante a leitura | Não persistir o conjunto estadual | `CD_IBGE`/`COD_IBGE` | `PENDENTE` | `PENDENTE` |
-| Conciliar aliases por nome | Variações anuais | Período e seleção dos campos canônicos | `PENDENTE` | `PENDENTE` |
-| Converter sentinelas em nulo | Representar ausência real | Campos Silver | `PENDENTE` | `PENDENTE` |
-| Tipar com conversões tolerantes | Medir inválidos sem abortar | Datas, inteiros e hora | `PENDENTE` | `PENDENTE` |
-| Confirmar `cod_ibge = 3552205` | Impedir outro município | `cod_ibge` | `PENDENTE` | `PENDENTE` |
-| Normalizar categorias | Evitar diferença só por caixa/espaço | Natureza, rubrica, conduta, período | `PENDENTE` | `PENDENTE` |
-| Derivar período só se ausente e hora válida | Aumentar cobertura com rastreio | `periodo_dia`, `origem_periodo` | `PENDENTE` | `PENDENTE` |
-| Deduplicar por `id_registro_fonte` | Remover somente linhas idênticas | Registro completo | `PENDENTE` | `PENDENTE` |
-| Resolver FKs e criar medida unitária | Impedir FK nula e conservar o grão | Três FKs e `qtd_ocorrencia` | `PENDENTE` | `PENDENTE` |
+| Regra | Motivo | Campos | Antes | Depois | Afetadas |
+|---|---|---|---:|---:|---:|
+| Sanitizar apenas nomes de coluna | Compatibilidade Delta | Cabeçalhos Bronze | 65.326 | 65.326 | 0 |
+| Filtrar Sorocaba durante a leitura | Não persistir o conjunto estadual | `CD_IBGE`/`COD_IBGE` | 4.792.830 | 65.326 | 4.727.504 |
+| Conciliar aliases por nome | Variações anuais | Período e seleção dos campos canônicos | 65.326 | 65.326 | 50.114 |
+| Converter sentinelas em nulo | Representar ausência real | Campos Silver | 65.326 | 65.326 | 63.804 |
+| Tipar com conversões tolerantes | Medir inválidos sem abortar | Datas, inteiros e hora | 65.326 | 65.326 | 17 |
+| Confirmar `cod_ibge = 3552205` | Impedir outro município | `cod_ibge` | 65.326 | 65.326 | 0 |
+| Normalizar categorias | Evitar diferença só por caixa/espaço | Natureza, rubrica, conduta, período | 65.326 | 65.326 | 65.324 |
+| Derivar período só se ausente e hora válida | Aumentar cobertura com rastreio | `periodo_dia`, `origem_periodo` | 65.326 | 65.326 | 49.191 |
+| Deduplicar por `id_registro_fonte` | Remover somente linhas idênticas | Registro completo | 65.326 | 65.325 | 1 |
+| Resolver FKs e criar medida unitária | Impedir FK nula e conservar o grão | Três FKs e `qtd_ocorrencia` | 65.325 | 65.325 | 1.382 |
 
 ### Reprodução em workspace novo
 
@@ -476,25 +481,32 @@ uma dimensão não se aplica, registra `N/A` e uma justificativa.
 
 | Teste | Esperado | Observado |
 |---|---|---|
-| Arquivos no manifesto | 4 distintos, 2022–2025, checksum válido | `PENDENTE DE EXECUÇÃO` |
-| Recorte municipal | 100% com `cod_ibge = 3552205` | `PENDENTE DE EXECUÇÃO` |
-| Hash | Nenhum nulo | `PENDENTE DE EXECUÇÃO` |
-| Deduplicação | Zero repetição do hash na Silver | `PENDENTE DE EXECUÇÃO` |
-| Hora | Somente 0–23 ou nulo | `PENDENTE DE EXECUÇÃO` |
-| Período | Somente categorias documentadas | `PENDENTE DE EXECUÇÃO` |
-| Datas impossíveis/futuras | Zero; datas antigas plausíveis não são rejeitadas | `PENDENTE DE EXECUÇÃO` |
-| Sentinelas | Exatamente uma chave `-1` por dimensão | `PENDENTE DE EXECUÇÃO` |
-| FKs nulas/órfãs | Zero | `PENDENTE DE EXECUÇÃO` |
-| Conservação | `SUM(qtd_ocorrencia) = COUNT(silver_ocorrencias)` | `PENDENTE DE EXECUÇÃO` |
-| Cobertura do perfil | Todas as colunas Bronze e Silver | `PENDENTE DE EXECUÇÃO` |
+| Arquivos no manifesto | 4 distintos, 2022–2025, checksum válido | 4 arquivos e 4 anos; 0 checksum/tamanho inválido — `OK` |
+| Recorte municipal | 100% com `cod_ibge = 3552205` | 65.326 linhas Bronze e 65.325 Silver; 0 fora do município — `OK` |
+| Hash | Nenhum nulo | 0 nulo e formato válido — `OK` |
+| Deduplicação | Zero repetição do hash na Silver | 65.326 → 65.325; 1 repetição idêntica removida e 0 duplicata na Silver — `OK` |
+| Hora | Somente 0–23 ou nulo | 0 valor fora do domínio; 16.134 nulos (24,698%) — `OK` |
+| Período | Somente categorias documentadas | 0 valor fora do domínio; 1.344 nulos (2,057%) — `OK` |
+| Datas impossíveis/futuras | Zero; datas antigas plausíveis não são rejeitadas | 0 impossível/futura; 299 nulas e 591 fora do recorte analítico — `OK` |
+| Sentinelas | Exatamente uma chave `-1` por dimensão | Uma em cada uma das três dimensões — `OK` |
+| FKs nulas/órfãs | Zero | 0 nula e 0 órfã nas três FKs — `OK` |
+| Conservação | `SUM(qtd_ocorrencia) = COUNT(silver_ocorrencias)` | 65.325 = 65.325 — `OK` |
+| Cobertura do perfil | Todas as colunas Bronze e Silver | 38/38 atributos Bronze e 17/17 Silver — `OK` |
 
-**Resultado da qualidade:** `PENDENTE DE EXECUÇÃO`. Resumir aqui os problemas
-observados, seu impacto em cada pergunta e as diferenças entre Bronze e Silver. O
-fim do pipeline, sozinho, não comprova boa qualidade.
+**Resultado da qualidade:** foram executadas 40 validações: 39 com status `OK`,
+uma `INFORMATIVO` e nenhuma `ATENÇÃO` ou `ERRO`. A única observação informativa
+foi um grupo repetido de forma idêntica na Bronze, removido exclusivamente pelo
+hash da linha original. A Silver eliminou valores inválidos de hora, período e
+data por conversão tolerante; isso aumenta a consistência, mas não cria informação
+ausente. Permaneceram 299 datas nulas, 16.134 horas nulas e 1.344 períodos nulos,
+todos explicitamente contabilizados nas análises. Dos períodos válidos, 49.190
+foram derivados da hora e 14.791 vieram da fonte.
 
 ![Perfil por atributo antes e depois](docs/evidencias/07-perfil-qualidade.png)
 
 ![Validações de integridade](docs/evidencias/08-validacoes-qualidade.png)
+
+![Observação informativa da qualidade](docs/evidencias/08-validacoes-qualidade-obs.png)
 
 ## 6. Análise de Dados
 
@@ -504,38 +516,78 @@ tabela, gráfico, cobertura e reconciliação com a fato.
 ### Pergunta 1 — evolução mensal e anual
 
 - **Método:** `SUM(qtd_ocorrencia)` por ano e mês da `dim_tempo`.
-- **Resposta:** `PENDENTE DE EXECUÇÃO`.
-- **Discussão/limitação:** `PENDENTE DE EXECUÇÃO`; informar cobertura de data
-  e não equiparar variação nos registros a variação causal na criminalidade.
-- **Reconciliação:** `PENDENTE DE EXECUÇÃO`.
+- **Resposta:** foram analisadas 64.435 ocorrências com data entre 2022 e 2025.
+  O total anual passou de 14.917 em 2022 para 16.347 em 2025, aumento de 9,6%.
+  O maior total anual foi 16.975 em 2023 e o pico mensal ocorreu em setembro de
+  2023, com 1.526 registros.
+- **Discussão/limitação:** a cobertura temporal foi 98,64% da fato. A variação
+  descreve registros administrativos e não demonstra aumento causal da
+  criminalidade. Foram excluídos do recorte analítico 299 registros sem data e
+  591 com data fora de 2022–2025.
+- **Reconciliação:** 64.435 analisados + 299 sem data + 591 fora do período =
+  65.325 linhas da fato.
 
 ![Resultado e gráfico da pergunta 1](docs/evidencias/09-pergunta-1.png)
 
 ### Pergunta 2 — naturezas mais frequentes e variação
 
 - **Método:** ranking no período completo e evolução anual das principais.
-- **Resposta:** `PENDENTE DE EXECUÇÃO`.
-- **Discussão/limitação:** `PENDENTE DE EXECUÇÃO`; registrar desconhecidos e
-  possíveis mudanças classificatórias.
-- **Reconciliação:** `PENDENTE DE EXECUÇÃO`.
+- **Resposta:** `FURTO - OUTROS` concentrou 37.053 registros (57,5%), seguido por
+  `LESÃO CORPORAL DOLOSA`, com 7.979 (12,4%), e `FURTO DE VEÍCULO`, com 6.518
+  (10,1%). A categoria líder variou de 9.101 em 2022 para 9.338 em 2025 (+2,6%).
+
+| Natureza | 2022 | 2023 | 2024 | 2025 | Total |
+|---|---:|---:|---:|---:|---:|
+| FURTO - OUTROS | 9.101 | 9.494 | 9.120 | 9.338 | 37.053 |
+| LESÃO CORPORAL DOLOSA | 1.610 | 2.009 | 2.079 | 2.281 | 7.979 |
+| FURTO DE VEÍCULO | 1.280 | 1.811 | 1.713 | 1.714 | 6.518 |
+| ROUBO - OUTROS | 1.475 | 1.610 | 1.294 | 969 | 5.348 |
+| LESÃO CORPORAL CULPOSA POR ACIDENTE DE TRÂNSITO | 600 | 696 | 800 | 752 | 2.848 |
+
+- **Discussão/limitação:** os 64.435 registros do recorte temporal possuíam
+  natureza classificada. As categorias são administrativas e mudanças de
+  registro/classificação podem influenciar a série; frequência não mede gravidade.
+- **Reconciliação:** a soma de todas as naturezas no ranking foi 64.435, igual ao
+  total válido usado na pergunta 1.
 
 ![Resultado e gráfico da pergunta 2](docs/evidencias/10-pergunta-2.png)
 
 ### Pergunta 3 — dia da semana e período do dia
 
 - **Método:** principais naturezas da pergunta 2 agregadas por dia e período.
-- **Resposta:** `PENDENTE DE EXECUÇÃO`.
-- **Discussão/limitação:** `PENDENTE DE EXECUÇÃO`; mostrar a proporção sem
-  hora/período e não ocultar `NÃO INFORMADO`.
-- **Reconciliação:** `PENDENTE DE EXECUÇÃO`.
+- **Resposta:** a combinação de maior frequência foi diferente em cada uma das
+  cinco naturezas líderes.
+
+| Natureza | Dia/período de maior frequência | Registros |
+|---|---|---:|
+| FURTO - OUTROS | Sábado / madrugada | 1.763 |
+| LESÃO CORPORAL DOLOSA | Domingo / noite | 628 |
+| FURTO DE VEÍCULO | Quarta-feira / madrugada | 354 |
+| ROUBO - OUTROS | Sexta-feira / noite | 303 |
+| LESÃO CORPORAL CULPOSA POR ACIDENTE DE TRÂNSITO | Sexta-feira / tarde | 197 |
+
+- **Discussão/limitação:** as cinco naturezas somaram 59.746 registros; 1.025
+  (1,72%) não tinham período disponível. Parte dos períodos foi derivada de hora
+  válida e continua identificada por `origem_periodo`. A concentração descreve a
+  base e não recomenda alocação policial.
+- **Reconciliação:** 59.746 no cruzamento de dia/período, incluindo a categoria
+  não informada, igual ao total anual das mesmas cinco naturezas.
 
 ![Resultado e gráfico da pergunta 3](docs/evidencias/11-pergunta-3.png)
 
+![Resposta e reconciliação da pergunta 3](docs/evidencias/11-pergunta-3-resposta.png)
+
 ### Conclusão geral
 
-`PENDENTE DE EXECUÇÃO`: conectar os três achados ao objetivo, explicar o que a
-base permite observar e o que permanece indeterminado. Não extrapolar frequências
-administrativas para causalidade, risco ou intervenção.
+O pipeline tornou comparáveis quatro arquivos anuais e respondeu às três perguntas
+propostas. O volume registrado cresceu 9,6% entre 2022 e 2025, mas o maior total
+anual ocorreu em 2023. `FURTO - OUTROS` dominou a composição, com 57,5% dos
+registros com data no período, enquanto as combinações de dia e período de maior
+frequência variaram entre as cinco principais naturezas. A boa reconciliação entre
+Silver, fato e agregações demonstra consistência interna; ainda assim, ausências de
+data/hora, datas fora do recorte e a natureza administrativa da fonte impedem
+inferências causais, estimativas de risco individual ou recomendações de
+intervenção.
 
 ## 7. Autoavaliação
 
@@ -543,13 +595,17 @@ administrativas para causalidade, risco ou intervenção.
 
 | Pergunta | Status | Evidência | Limitação determinante |
 |---|---|---|---|
-| Evolução mensal/anual | `PENDENTE: Sim / Parcial / Não` | Notebook 03 e imagem 09 | Atualizar com cobertura real de data |
-| Naturezas e variação | `PENDENTE: Sim / Parcial / Não` | Notebook 03 e imagem 10 | Atualizar com cobertura classificatória |
-| Dia da semana e período | `PENDENTE: Sim / Parcial / Não` | Notebook 03 e imagem 11 | Atualizar com cobertura de hora/período |
+| Evolução mensal/anual | Sim | Notebook 03 e imagem 09 | Cobertura de data de 98,64%; 299 nulos e 591 fora do período |
+| Naturezas e variação | Sim | Notebook 03 e imagem 10 | 100% dos 64.435 registros do período classificados; categorias administrativas |
+| Dia da semana e período | Sim | Notebook 03 e imagem 11 | 98,28% das cinco naturezas com período; 1,72% não informado |
 
 ### Dificuldades encontradas
 
-- Leitura de XLSX grandes em ambiente limitado, tratada com `openpyxl` em lotes.
+- Leitura de 4.792.830 linhas em XLSX grandes no Free Edition, tratada com
+  `openpyxl` em modo somente leitura e lotes; a principal célula Bronze levou
+  aproximadamente 20 minutos.
+- O acesso externo do ambiente não foi confiável, por isso os arquivos originais
+  foram baixados pelo coletor local e enviados manualmente ao Volume.
 - Variações de nomes/disponibilidade de colunas, reconciliadas por nome.
 - Sentinelas textuais e tipagem estrita, tratadas antes da conversão tolerante.
 - Diferença entre município de registro e circunscrição, resolvida pelo código
@@ -557,16 +613,16 @@ administrativas para causalidade, risco ou intervenção.
 - Risco de remover fatos legítimos, evitado ao deduplicar somente pelo hash de toda
   a linha original.
 
-Acrescentar somente dificuldades realmente observadas na nova execução.
-
 ### Limitações
 
 - Uma fonte e um município.
 - Dependência da cobertura e semântica dos registros administrativos.
 - Sem denominador populacional: resultados são contagens, não taxas.
 - Sem validação externa da acurácia de cada BO.
-- Período parcialmente dependente da disponibilidade da hora.
-- Evidências e resultados ainda dependem da execução final.
+- Período parcialmente dependente da disponibilidade da hora; 49.190 valores
+  foram derivados e 1.344 permaneceram nulos.
+- Existem 299 datas nulas e 591 datas fora do recorte 2022–2025; a data não nula
+  mais antiga observada foi `1976-01-02`.
 
 ### Trabalhos futuros
 
@@ -579,20 +635,27 @@ Somente depois de todos os testes e evidências desta versão estarem completos:
 
 ### Reflexão final
 
-`PENDENTE DE EXECUÇÃO`: registrar se o pipeline cumpriu o objetivo, quais
-perguntas foram respondidas integral/parcialmente, quais decisões mais impactaram o
-resultado e o que seria feito de outra forma.
+O pipeline cumpriu o objetivo e respondeu integralmente às três perguntas dentro
+das coberturas declaradas. As decisões de filtrar Sorocaba ainda durante a leitura,
+preservar a Bronze textual, deduplicar apenas hashes idênticos e rastrear a origem
+do período foram as que mais protegeram o grão e a auditabilidade. Em uma próxima
+execução, eu manteria o mesmo contrato, mas avaliaria a conversão dos XLSX oficiais
+para um formato de leitura mais eficiente antes do processamento distribuído,
+preservando os originais e os checksums como evidência.
 
 ## Evidências finais e conferência
 
 ![Página oficial da fonte e termos exibidos](docs/evidencias/13-fonte-termos-uso.png)
 
-- [ ] Quatro notebooks executados em ordem, sem erro.
-- [ ] Todo `PENDENTE DE EXECUÇÃO` substituído por valor real.
-- [ ] Catálogo conferido com `DESCRIBE TABLE` para todas as tabelas.
-- [ ] Toda coluna Bronze e Silver presente no perfil.
-- [ ] Testes aprovados ou reprovações discutidas.
-- [ ] Três perguntas com tabela, gráfico, resposta, discussão e limitação.
-- [ ] Conclusão e autoavaliação baseadas em resultados observados.
-- [ ] As 13 imagens existem, são legíveis e aparecem neste README.
-- [ ] Nenhum dado bruto, endereço, coordenada, BO, credencial ou PDF do curso no Git.
+![Arquivos anuais publicados pela SSP-SP](docs/evidencias/13-fonte-arquivos-publicados.png)
+
+- [x] Quatro notebooks executados em ordem, sem erro.
+- [x] Todo resultado de execução substituído por valor real.
+- [x] Catálogo conferido com `DESCRIBE TABLE` para todas as tabelas.
+- [x] Toda coluna Bronze e Silver presente no perfil.
+- [x] Testes aprovados ou observações informativas discutidas.
+- [x] Três perguntas com tabela, gráfico, resposta, discussão e limitação.
+- [x] Conclusão e autoavaliação baseadas em resultados observados.
+- [x] As 16 imagens existem, são legíveis e aparecem neste README.
+- [x] Nenhum XLSX bruto, registro individual, credencial ou PDF do curso está no Git.
+- [x] As saídas agregadas e os perfis de qualidade foram preservados nos notebooks.

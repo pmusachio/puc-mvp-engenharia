@@ -2,7 +2,7 @@
 
 Este utilitário é executado localmente. Depois da coleta, faça upload manual dos
 arquivos em ``data/raw`` para o diretório informado pelo notebook
-``00_coleta_bronze.py``. Os arquivos e o manifesto local não devem ser
+``00_coleta_bronze.ipynb``. Os arquivos e o manifesto local não devem ser
 versionados no Git.
 
 Uso:
@@ -178,7 +178,7 @@ def main() -> int:
         print(
             "Próximo passo: envie os XLSX para "
             "/Volumes/workspace/sorocaba_seguranca/dados/xlsx/ e execute "
-            "notebooks/00_coleta_bronze.py no Databricks."
+            "notebooks/00_coleta_bronze.ipynb no Databricks."
         )
 
     return 1 if falhas else 0
