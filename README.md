@@ -1,4 +1,4 @@
-# Ocorrências registradas em Sorocaba — MVP de Engenharia de Dados
+# Ocorrências registradas em Sorocaba
 
 Pipeline em Databricks que transforma arquivos anuais da Secretaria da Segurança
 Pública do Estado de São Paulo (SSP-SP) em tabelas Delta nas camadas Bronze,
