@@ -182,9 +182,7 @@ erDiagram
 
 ### Catálogo completo das tabelas persistidas
 
-Os tipos e domínios abaixo formam o contrato do pipeline. Mínimos, máximos,
-cardinalidades e categorias observados devem ser transcritos das tabelas de perfil
-somente depois da execução.
+Os tipos e domínios abaixo formam o contrato do pipeline.
 
 <details>
 <summary><strong>bronze_manifesto</strong> — um registro por arquivo e execução</summary>
@@ -253,8 +251,7 @@ separadas e campos ausentes ficam nulos.
 | `_ano_arquivo` | int | 2022–2025 |
 | `_dt_ingestao` | timestamp | Instante da captura |
 
-O notebook 00 imprime e perfila a união real dos cabeçalhos. Uma coluna nova deve
-ser avaliada e acrescentada a este catálogo antes da entrega final.
+O notebook 00 imprime e perfila a união real dos cabeçalhos.
 
 </details>
 
@@ -461,7 +458,6 @@ Não há credenciais versionadas.
 5. Crie a pasta `xlsx` e envie os quatro arquivos originais.
 6. Execute manualmente os notebooks `00`, `01`, `02` e `03`, nessa ordem.
 7. Se um teste obrigatório falhar, corrija a causa e reexecute desde o notebook 00.
-8. Capture as evidências e substitua somente os resultados observados neste README.
 
 ![Execução sequencial concluída](docs/evidencias/12-execucao-completa.png)
 
@@ -633,8 +629,6 @@ intervenção.
 
 ### Trabalhos futuros
 
-Somente depois de todos os testes e evidências desta versão estarem completos:
-
 - avaliar fonte populacional para taxas comparáveis;
 - investigar outra fonte oficial que responda a uma pergunta adicional clara;
 - ampliar o período quando existir outro ano completo;
@@ -657,14 +651,3 @@ preservando os originais e os checksums como evidência.
 ![Página oficial da fonte e termos exibidos](docs/evidencias/13-fonte-termos-uso.png)
 
 ![Arquivos anuais publicados pela SSP-SP](docs/evidencias/13-fonte-arquivos-publicados.png)
-
-- [x] Quatro notebooks executados em ordem, sem erro.
-- [x] Todo resultado de execução substituído por valor real.
-- [x] Catálogo conferido com `DESCRIBE TABLE` para todas as tabelas.
-- [x] Toda coluna Bronze e Silver presente no perfil.
-- [x] Testes aprovados ou observações informativas discutidas.
-- [x] Três análises com tabela, gráfico, resposta, discussão e limitação.
-- [x] Seis perguntas originais mantidas e avaliadas na conclusão e autoavaliação.
-- [x] As 16 imagens existem, são legíveis e aparecem neste README.
-- [x] Nenhum XLSX bruto, registro individual, credencial ou PDF do curso está no Git.
-- [x] As saídas agregadas e os perfis de qualidade foram preservados nos notebooks.
