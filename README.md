@@ -24,31 +24,24 @@ para analisar **ocorrências registradas** em Sorocaba. Elas não são tratadas 
 medida direta de criminalidade real, risco individual ou efetividade policial.
 
 O público interessado inclui estudantes, pesquisadores e cidadãos que desejem
-consultar estatísticas descritivas. O trabalho responde a três perguntas:
+consultar estatísticas descritivas. O objetivo original considera seis perguntas:
 
-1. Como evoluiu o volume mensal e anual de ocorrências registradas em Sorocaba
-   entre 2022 e 2025?
-2. Quais naturezas concentram o maior volume e como as principais variaram no
-   período?
-3. Como as naturezas mais frequentes se distribuem por dia da semana e período do
-   dia?
+1. Quais bairros concentram mais ocorrências e como isso muda?
+2. Existe sazonalidade por dia, mês e horário?
+3. Quais tipos predominam por bairro/região?
+4. Há tendência de crescimento, queda ou estabilidade?
+5. Existe relação entre tipo de local e tipo de ocorrência?
+6. Existe correlação espacial entre tipos de ocorrência?
+
+O notebook 03 apresenta três análises viáveis com as tabelas construídas: **A1**,
+evolução mensal e anual dos registros; **A2**, frequência e variação anual das
+naturezas no município; **A3**, distribuição das principais naturezas por dia da
+semana e período do dia. A correspondência parcial entre essas análises e as seis
+perguntas originais é avaliada na seção 7. As perguntas não respondidas continuam
+fazendo parte do objetivo e são reconhecidas como limitações da entrega.
 
 O período foi limitado a quatro anos completos. O ano parcial de 2026 foi excluído
 para não produzir comparações assimétricas.
-
-### Histórico de escopo
-
-A versão anterior continha seis perguntas. Elas permanecem registradas apenas para
-tornar a simplificação transparente:
-
-| Pergunta anterior | Tratamento nesta versão |
-|---|---|
-| Quais bairros concentram mais ocorrências e como isso muda? | Retirada: bairro e geografia não são necessários à entrega. |
-| Existe sazonalidade por dia, mês e horário? | Consolidada nas perguntas 1 e 3. |
-| Quais tipos predominam por bairro/região? | Simplificada para natureza e variação temporal, na pergunta 2. |
-| Há tendência de crescimento, queda ou estabilidade? | Consolidada na pergunta 1, como descrição dos registros. |
-| Existe relação entre tipo de local e tipo de ocorrência? | Retirada: o campo não cobre uniformemente os quatro anos. |
-| Existe correlação espacial entre tipos de ocorrência? | Retirada: exigiria geografia e método fora do escopo. |
 
 ### Limites de interpretação
 
@@ -125,14 +118,14 @@ cada linha até sua origem.
 SSP-SP
   └─ XLSX 2022–2025 no Unity Catalog Volume (originais imutáveis)
        └─ bronze_manifesto + bronze_recorte_sorocaba
+            ├─ perfil_qualidade_bronze (sobre bronze_recorte_sorocaba)
             └─ silver_ocorrencias
-                 ├─ dim_tempo
-                 ├─ dim_periodo_dia
-                 ├─ dim_natureza
-                 └─ fato_ocorrencia
-                      ├─ perfil_qualidade_bronze
-                      ├─ perfil_qualidade_silver
-                      └─ validacoes_qualidade
+                 ├─ perfil_qualidade_silver (sobre silver_ocorrencias)
+                 └─ Gold: dim_tempo + dim_periodo_dia + dim_natureza
+                            └─ fato_ocorrencia
+
+matriz_transformacoes: documenta as etapas Bronze → Silver → Gold
+validacoes_qualidade: verifica tabelas da coleta, Bronze, Silver e Gold
 ```
 
 - **Plataforma:** Databricks Free Edition.
@@ -431,7 +424,7 @@ As duas tabelas usam o mesmo contrato e contêm uma linha por atributo.
 | 1 | [`00_coleta_bronze.ipynb`](notebooks/00_coleta_bronze.ipynb) | Inventário, leitura em lotes, filtro municipal e hash | Manifesto e Bronze |
 | 2 | [`01_pipeline_bronze_silver_gold.ipynb`](notebooks/01_pipeline_bronze_silver_gold.ipynb) | Reconciliação, tipagem, limpeza, deduplicação e estrela | Silver, Gold e matriz |
 | 3 | [`02_qualidade_dados.ipynb`](notebooks/02_qualidade_dados.ipynb) | Perfil por atributo e testes de integridade | Perfis e validações |
-| 4 | [`03_analise_perguntas_negocio.ipynb`](notebooks/03_analise_perguntas_negocio.ipynb) | Três perguntas, tabelas, gráficos e conclusão | Resultados no notebook |
+| 4 | [`03_analise_perguntas_negocio.ipynb`](notebooks/03_analise_perguntas_negocio.ipynb) | Três análises, tabelas, gráficos e conclusão | Resultados no notebook |
 
 As consultas SQL auxiliares usadas para conferir os objetos persistidos e gerar
 as evidências 03, 04, 05 e 08 estão consolidadas em
@@ -504,6 +497,13 @@ foram derivados da hora e 14.791 vieram da fonte.
 
 ![Perfil por atributo antes e depois](docs/evidencias/07-perfil-qualidade.png)
 
+Na comparação exibida na imagem, os **95,9082%** de ausência na Bronze se referem
+somente à coluna `DESCR_PERIODO`; os **2,0574%** da Silver se referem a
+`periodo_dia` após conciliar `DESCR_PERIODO` com `DESC_PERIODO`, derivar períodos
+da hora quando possível e remover a linha duplicada. Portanto, a diferença não
+mede o ganho de preenchimento de uma mesma coluna nem a cobertura da fonte
+consolidada antes do tratamento.
+
 ![Validações de integridade](docs/evidencias/08-validacoes-qualidade.png)
 
 ![Observação informativa da qualidade](docs/evidencias/08-validacoes-qualidade-obs.png)
@@ -512,8 +512,10 @@ foram derivados da hora e 14.791 vieram da fonte.
 
 Os resultados são produzidos pelo notebook 03 sobre a Gold. Cada consulta exibe
 tabela, gráfico, cobertura e reconciliação com a fato.
+Nas capturas anteriores à revisão, os rótulos "pergunta 1–3" correspondem às
+análises A1–A3 abaixo, não à numeração das seis perguntas originais.
 
-### Pergunta 1 — evolução mensal e anual
+### Análise A1 — evolução mensal e anual
 
 - **Método:** `SUM(qtd_ocorrencia)` por ano e mês da `dim_tempo`.
 - **Resposta:** foram analisadas 64.435 ocorrências com data entre 2022 e 2025.
@@ -527,9 +529,9 @@ tabela, gráfico, cobertura e reconciliação com a fato.
 - **Reconciliação:** 64.435 analisados + 299 sem data + 591 fora do período =
   65.325 linhas da fato.
 
-![Resultado e gráfico da pergunta 1](docs/evidencias/09-pergunta-1.png)
+![Resultado e gráfico da análise A1](docs/evidencias/09-pergunta-1.png)
 
-### Pergunta 2 — naturezas mais frequentes e variação
+### Análise A2 — naturezas mais frequentes e variação
 
 - **Método:** ranking no período completo e evolução anual das principais.
 - **Resposta:** `FURTO - OUTROS` concentrou 37.053 registros (57,5%), seguido por
@@ -548,13 +550,13 @@ tabela, gráfico, cobertura e reconciliação com a fato.
   natureza classificada. As categorias são administrativas e mudanças de
   registro/classificação podem influenciar a série; frequência não mede gravidade.
 - **Reconciliação:** a soma de todas as naturezas no ranking foi 64.435, igual ao
-  total válido usado na pergunta 1.
+  total válido usado na análise A1.
 
-![Resultado e gráfico da pergunta 2](docs/evidencias/10-pergunta-2.png)
+![Resultado e gráfico da análise A2](docs/evidencias/10-pergunta-2.png)
 
-### Pergunta 3 — dia da semana e período do dia
+### Análise A3 — dia da semana e período do dia
 
-- **Método:** principais naturezas da pergunta 2 agregadas por dia e período.
+- **Método:** principais naturezas da análise A2 agregadas por dia e período.
 - **Resposta:** a combinação de maior frequência foi diferente em cada uma das
   cinco naturezas líderes.
 
@@ -573,15 +575,17 @@ tabela, gráfico, cobertura e reconciliação com a fato.
 - **Reconciliação:** 59.746 no cruzamento de dia/período, incluindo a categoria
   não informada, igual ao total anual das mesmas cinco naturezas.
 
-![Resultado e gráfico da pergunta 3](docs/evidencias/11-pergunta-3.png)
+![Resultado e gráfico da análise A3](docs/evidencias/11-pergunta-3.png)
 
-![Resposta e reconciliação da pergunta 3](docs/evidencias/11-pergunta-3-resposta.png)
+![Resposta e reconciliação da análise A3](docs/evidencias/11-pergunta-3-resposta.png)
 
 ### Conclusão geral
 
-O pipeline tornou comparáveis quatro arquivos anuais e respondeu às três perguntas
-propostas. O volume registrado cresceu 9,6% entre 2022 e 2025, mas o maior total
-anual ocorreu em 2023. `FURTO - OUTROS` dominou a composição, com 57,5% dos
+O pipeline tornou comparáveis quatro arquivos anuais e produziu três análises
+descritivas. Elas respondem diretamente à pergunta original 4, parcialmente à 2
+e não respondem às perguntas 1, 3, 5 e 6. O volume registrado cresceu 9,6% entre
+2022 e 2025, mas o maior total anual ocorreu em 2023. `FURTO - OUTROS` dominou
+a composição, com 57,5% dos
 registros com data no período, enquanto as combinações de dia e período de maior
 frequência variaram entre as cinco principais naturezas. A boa reconciliação entre
 Silver, fato e agregações demonstra consistência interna; ainda assim, ausências de
@@ -593,11 +597,14 @@ intervenção.
 
 ### Atingimento dos objetivos
 
-| Pergunta | Status | Evidência | Limitação determinante |
-|---|---|---|---|
-| Evolução mensal/anual | Sim | Notebook 03 e imagem 09 | Cobertura de data de 98,64%; 299 nulos e 591 fora do período |
-| Naturezas e variação | Sim | Notebook 03 e imagem 10 | 100% dos 64.435 registros do período classificados; categorias administrativas |
-| Dia da semana e período | Sim | Notebook 03 e imagem 11 | 98,28% das cinco naturezas com período; 1,72% não informado |
+| Pergunta original | Status | Evidência e razão |
+|---|---|---|
+| 1. Bairros e mudança | Não respondida | A Gold e as análises não agregam por bairro; A1 é municipal. |
+| 2. Sazonalidade por dia, mês e horário | Parcial | A1 mostra mês; A3 mostra dia da semana e período do dia. Não há análise por hora nem conclusão sobre repetição sazonal. |
+| 3. Tipos por bairro/região | Não respondida | A2 classifica naturezas para todo o município, sem recorte por bairro/região. |
+| 4. Crescimento, queda ou estabilidade | Respondida descritivamente | A1 mostra aumento de 9,6% entre 2022 e 2025 e pico anual em 2023, somente para registros com data no período. |
+| 5. Tipo de local × ocorrência | Não respondida | Não foi feito cruzamento por tipo de local; esse campo não compõe a Silver/Gold atual. |
+| 6. Correlação espacial entre tipos | Não respondida | Não foi calculada correlação espacial; coordenadas não compõem a Silver/Gold atual. |
 
 ### Dificuldades encontradas
 
@@ -635,8 +642,10 @@ Somente depois de todos os testes e evidências desta versão estarem completos:
 
 ### Reflexão final
 
-O pipeline cumpriu o objetivo e respondeu integralmente às três perguntas dentro
-das coberturas declaradas. As decisões de filtrar Sorocaba ainda durante a leitura,
+O pipeline e as três análises implementadas funcionaram dentro das coberturas
+declaradas, mas o objetivo original de seis perguntas foi atingido apenas em parte:
+uma foi respondida descritivamente, uma parcialmente e quatro ficaram sem resposta.
+As decisões de filtrar Sorocaba ainda durante a leitura,
 preservar a Bronze textual, deduplicar apenas hashes idênticos e rastrear a origem
 do período foram as que mais protegeram o grão e a auditabilidade. Em uma próxima
 execução, eu manteria o mesmo contrato, mas avaliaria a conversão dos XLSX oficiais
@@ -654,8 +663,8 @@ preservando os originais e os checksums como evidência.
 - [x] Catálogo conferido com `DESCRIBE TABLE` para todas as tabelas.
 - [x] Toda coluna Bronze e Silver presente no perfil.
 - [x] Testes aprovados ou observações informativas discutidas.
-- [x] Três perguntas com tabela, gráfico, resposta, discussão e limitação.
-- [x] Conclusão e autoavaliação baseadas em resultados observados.
+- [x] Três análises com tabela, gráfico, resposta, discussão e limitação.
+- [x] Seis perguntas originais mantidas e avaliadas na conclusão e autoavaliação.
 - [x] As 16 imagens existem, são legíveis e aparecem neste README.
 - [x] Nenhum XLSX bruto, registro individual, credencial ou PDF do curso está no Git.
 - [x] As saídas agregadas e os perfis de qualidade foram preservados nos notebooks.
